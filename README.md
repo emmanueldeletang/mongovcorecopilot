@@ -25,5 +25,6 @@ you can test with this  version  full text search  and vector in cosmsodb mongo 
 - TO LAUNCH THE APPLICATION JUST do Streamlit run app.py
 - enter a login name and after in the first login and all the collections will be create just push the button ( create vector db  )
 - have fun
-- some sample document are in the dataset folder
-- I have add the capacity to load the data from the from ARGUS ACCELERATOR : https://github.com/Azure-Samples/ARGUS made by some collegues 
+- some sample document are in the dataset folder of my other accelerator ( https://github.com/emmanueldeletang/Cosmsodbcopilotwebapp/tree/main/dataset ) 
+- I have add the capacity to load the data from the from ARGUS ACCELERATOR : https://github.com/Azure-Samples/ARGUS made by some collegues
+- if you want to deploy in web app , use the run.sh in the start of the web app .... 
