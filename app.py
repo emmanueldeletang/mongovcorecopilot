@@ -643,6 +643,7 @@ def get_similar_docs(openai_client, db, query_text, limit, sim, typesearch):
     client = init_connection()   
     mydbt = client[db]
     cvector = mydbt[colvector]
+    products = []
     
     if  typesearch == "vector":
        
@@ -665,7 +666,10 @@ def get_similar_docs(openai_client, db, query_text, limit, sim, typesearch):
     
         results = list(cvector.aggregate(pipeline))
         
-       
+        for result in results:
+            product = {}  # Create a new dictionary for each result
+            product['text'] = result['document']['text']  # Assign text from document
+            products.append(product)  # Append to list
 
       
          
@@ -701,23 +705,54 @@ def get_similar_docs(openai_client, db, query_text, limit, sim, typesearch):
             }
             formatted_results.append(formatted_doc)
         
-        results = formatted_results
-        
-
-        
+        for result in results:
             
-
-         
-            
-    products = []      
-   
-    for result in results:
             product = {}  # Create a new dictionary for each result
             product['text'] = result['document']['text']  # Assign text from document
             products.append(product)  # Append to list
+            
+    elif  typesearch == "hybrid":    
+        
+        query_vector = generate_embeddings(openai_client, query_text)
+        
+        pipeline = [
+        {'$search': {"cosmosSearch": {"vector":   query_vector,"path": "embedding","k": limit}}},
+        {'$group': {'_id': 'null', 'vectorResults': { '$push': '$$ROOT' } } },
+        { '$unwind': { 'path': '$vectorResults', 'includeArrayIndex': 'vectorRank' } },
+        { '$addFields': { 'vs_score': { '$divide': [1, { '$add': ['$vectorRank', 1, 1] }] } } },
+        { '$project': { '_id': '$vectorResults._id', 'title': '$vectorResults.text', 'vs_score': 1 } },
+        { '$unionWith': {
+        'coll': 'hybrid_col',
+            'pipeline': [
+            { '$match': { '$text': { '$search': query_text } } },
+            { '$addFields': { 'textScore': { '$meta': 'textScore' } } },
+            { '$group': { '_id': 'null', 'textResults': { '$push': '$$ROOT' } } },
+            { '$unwind': { 'path': '$textResults', 'includeArrayIndex': 'textRank' } },
+            { '$addFields': { 'fts_score': { '$divide': [1, { '$add': ['$textRank', 10, 1] }] } } },
+            { '$project': { '_id': '$_id', 'title': '$text', 'fts_scor': 1 } }
+            ]
+        }},
+        { '$group': {
+            '_id': '$title',
+            'finalScore': { '$max': { '$add': [{ '$ifNull': ['$vs_score', 0] }, { '$ifNull': ['$fts_score', 0] }] } }
+        }},
+        { '$sort': { 'finalScore': -1 } }
+        ]
+           
+      
+    
+        results = list(cvector.aggregate(pipeline))
+        for result in results:
+           
+            product = {}  # Create a new dictionary for each result
+            product['text'] = result['_id']  # Assign text from document
+            products.append(product)  # App
+        
+
+        
+            
+
          
-          
-  
     
          
     return products
@@ -1155,7 +1190,8 @@ def main():
             st.header("Chat")
             models = [
                 "vector",
-                "full text"
+                "full text",
+                "hybrid"
                 ]
             if st.button("clear the cache"):
                 st.write("start clear the Cache")
