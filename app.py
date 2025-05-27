@@ -706,9 +706,9 @@ def get_similar_docs(openai_client, db, query_text, limit, sim, typesearch):
             formatted_results.append(formatted_doc)
         
         for result in results:
-            
+            print(result)
             product = {}  # Create a new dictionary for each result
-            product['text'] = result['document']['text']  # Assign text from document
+            product['text'] = result['text']  # Assign text from document
             products.append(product)  # Append to list
             
     elif  typesearch == "hybrid":    
